@@ -377,7 +377,17 @@ namespace PrayTimeCs
         }
         private Dictionary<string,double> ComputePrayerTimes(Dictionary<string,double> times)
         {
- 	        throw new NotImplementedException();
+            times = DayPortion(times);
+            throw new NotImplementedException();
+        }
+        private Dictionary<string, double> DayPortion(Dictionary<string, double> times)
+        {
+            foreach (var i in times)
+            {
+                
+            }
+
+            throw new NotImplementedException();
         }
         private double GetJulian(int year, int month, int day)
         {
