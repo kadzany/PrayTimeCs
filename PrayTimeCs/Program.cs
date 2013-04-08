@@ -9,6 +9,7 @@ namespace PrayTimeCs
     {
         static void Main(string[] args)
         {
+            PrayTimeCs prayTimeCs = new PrayTimeCs("MWN");
         }
     }
 }

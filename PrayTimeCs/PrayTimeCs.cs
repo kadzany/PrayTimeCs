@@ -40,7 +40,19 @@ namespace PrayTimeCs
             public string Name { get; set; }
             public List<Param> Params { get; set; }
         }
-        private string _calcMethod = "MWL";
+        public class ParamsComparer : IEqualityComparer<Param>
+        {
+            public bool Equals(Param x, Param y)
+            {
+                return x.ParamName == y.ParamName;
+            }
+
+            public int GetHashCode(Param obj)
+            {
+                return obj.GetHashCode();
+            }
+        }
+        private Method _calcMethod;
         private Dictionary<String, Method> _methods;
         private List<Param> _defaultParams = new List<Param>
         {
@@ -82,16 +94,64 @@ namespace PrayTimeCs
         private string[] _timeSuffixes = new string[] { "am", "pm" };
         private string _invalidTime = "-----";
         private int _numIterations = 1;
-        private int[] _offset; 
+        private Dictionary<String, float> _offset = new Dictionary<string, float>
+        {
+            { TimeNames.Imsak, 0 },
+            { TimeNames.Fajr, 0 },
+            { TimeNames.Sunrise, 0 },
+            { TimeNames.Dhuhr, 0 },
+            { TimeNames.Asr, 0 },
+            { TimeNames.Sunset, 0 },
+            { TimeNames.Maghrib, 0 },
+            { TimeNames.Isha, 0 },
+            { TimeNames.Midnight, 0 }
+        }; 
+        private float _lat, _lng, _elv;
+        private float _timeZone, _jDate;
         #endregion
         
         #region Initializers & Public Methods
         public PrayTimeCs(string methodName)
-        {
-            _calcMethod = methodName;
-            InitializeMethods();
+        {            
+            InitializeMethods();            
+            SetMethodsDefault();
+            InitializeSettings(methodName);            
         }
-        public void InitializeMethods()
+        private void InitializeSettings(string methodName)
+        {
+            _calcMethod = _methods[methodName];
+            foreach (var i in _calcMethod.Params)
+            {
+                Param par = _settings.Where(p => p.ParamName == i.ParamName).FirstOrDefault();
+                if (i.MinuteValue != null)
+                {
+                    par.DegValue = null;
+                    par.DescribedValue = string.Empty;
+                    par.MinuteValue = i.MinuteValue;
+                }
+                else if (i.DegValue != null)
+                {
+                    par.DegValue = i.DegValue;
+                    par.DescribedValue = string.Empty;
+                    par.MinuteValue = null;
+                }
+                else if (i.DescribedValue != null)
+                {
+                    par.DegValue = null;
+                    par.DescribedValue = i.DescribedValue;
+                    par.MinuteValue = null;
+                }
+            }
+        }
+        private void SetMethodsDefault()
+        {
+            List<Param> defParams = _defaultParams;
+            foreach (var i in _methods)
+            {
+                i.Value.Params.AddRange(defParams.Where(p => ! i.Value.Params.Select(c => c.ParamName).Contains(p.ParamName)));
+            }
+        }
+        private void InitializeMethods()
         {
             if (_methods == null)
             {
@@ -243,7 +303,48 @@ namespace PrayTimeCs
                                 }
                             }
                     });
-        } 
+        }
+
+        public void SetMethod(Method method)
+        {
+            
+        }
+
+        public void Adjust(List<Param> param)
+        {
+
+        }
+
+        public void Tune(Dictionary<String, float> offset)
+        {
+
+        }
+
+        public Method GetMethod()
+        {
+            return _calcMethod;
+        }
+
+        public List<Param> GetSetting()
+        {
+            return _settings;
+        }
+
+        public Dictionary<String, float> GetOffset()
+        {
+            return _offset;
+        }
+
+        public Dictionary<String, Method> GetDefaults()
+        {
+            return _methods;
+        }
+
+        public List<String> GetTimes()
+        {
+            List<String> resultingTimes = new List<string>();
+            return resultingTimes;
+        }
         #endregion
     }
 }
