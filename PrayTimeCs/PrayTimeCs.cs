@@ -109,24 +109,9 @@ namespace PrayTimeCs
             _calcMethod = _methods[methodName];
             foreach (var i in _calcMethod.Params)
             {
-                Param par = _settings.Where(p => p.ParamName == i.ParamName).FirstOrDefault();
-                if (i.MinuteValue != null)
+                if (_settings.Where(p => p.ParamName == i.ParamName).FirstOrDefault() == null)
                 {
-                    par.DegValue = null;
-                    par.DescribedValue = string.Empty;
-                    par.MinuteValue = i.MinuteValue;
-                }
-                else if (i.DegValue != null)
-                {
-                    par.DegValue = i.DegValue;
-                    par.DescribedValue = string.Empty;
-                    par.MinuteValue = null;
-                }
-                else if (i.DescribedValue != null)
-                {
-                    par.DegValue = null;
-                    par.DescribedValue = i.DescribedValue;
-                    par.MinuteValue = null;
+                    _settings.Add(i);
                 }
             }
         }
