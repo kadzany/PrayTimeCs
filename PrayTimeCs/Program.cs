@@ -10,6 +10,7 @@ namespace PrayTimeCs
         static void Main(string[] args)
         {
             PrayTimeCs prayTimeCs = new PrayTimeCs("MWL");
+            prayTimeCs.GetTimes(DateTime.Now, 43, -80, -5, 0);
         }
     }
 }

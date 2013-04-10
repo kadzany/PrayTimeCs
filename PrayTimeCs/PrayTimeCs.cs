@@ -5,6 +5,11 @@ using System.Text;
 
 namespace PrayTimeCs
 {
+    public enum AsrFactor
+    {
+        Standard,
+        Hanafi
+    }
     public static class TimeNames
     {
         public static string Imsak = "Imsak";
@@ -27,18 +32,109 @@ namespace PrayTimeCs
     public class Param
     {
         public string ParamName { get; set; }
-        public double? DegValue { get; set; }
-        public double? MinuteValue { get; set; }
-        public string DescribedValue { get; set; }
+        double? _degValue;
+        public double? DegValue 
+        {
+            get { return _degValue;  }
+            set 
+            {
+                _describedValue = null;
+                _minuteValue = null;
+                _degValue = value; 
+            }
+        }
+        double? _minuteValue;
+        public double? MinuteValue
+        {
+            get { return _minuteValue; }
+            set
+            {
+                _describedValue = null;
+                _degValue = null;
+                _minuteValue = value;
+            }
+        }
+        string _describedValue;
+        public string DescribedValue
+        {
+            get { return _describedValue; }
+            set
+            {
+                _minuteValue = null;
+                _degValue = null;
+                _describedValue = value;
+            }
+        }
     }
     public class Method
     {
         public string Name { get; set; }
         public List<Param> Params { get; set; }
     }
+    public class SunPosition
+    {
+        public double Declination { get; set; }
+        public double Equation { get; set; }
+    }
+    public class DMath
+    {
+        public double D2R(double d)
+        {
+            return (d * Math.PI) / 180;
+        }
+        public double R2D(double r) 
+        { 
+            return (r * 180.0) / Math.PI; 
+        }
+        public double Sin(double d)
+        { 
+            return Math.Sin(D2R(d)); 
+        }
+        public double Cos(double d) 
+        { 
+            return Math.Cos(D2R(d)); 
+        }
+        public double Tan(double d) 
+        { 
+            return Math.Tan(D2R(d)); 
+        }
+        public double ArcSin(double d) 
+        { 
+            return R2D(Math.Asin(d)); 
+        }
+        public double ArcCos(double d)
+        { 
+            return R2D(Math.Acos(d)); 
+        }
+        public double ArcTan(double d) 
+        { 
+            return R2D(Math.Atan(d)); 
+        }
+        public double ArcCot(double x) 
+        { 
+            return R2D(Math.Atan(1 / x)); 
+        }
+        public double ArcTan2(double y,double  x)
+        { 
+            return R2D(Math.Atan2(y, x)); 
+        }
+        public double FixAngle(double a) 
+        { 
+            return Fix(a, 360); 
+        }
+        public double FixHour(double a) 
+        { 
+            return Fix(a, 24); 
+        }
+        public double Fix(double a,double  b) {
+            a = a - b * (Math.Floor(a / b));
+            return (a < 0) ? a + b : a;
+        }
+    }
     public class PrayTimeCs
     {
-        #region Constants        
+        #region Constants 
+        private DMath _degMath = new DMath();
         private Method _calcMethod;
         private Dictionary<String, Method> _methods;
         private List<Param> _defaultParams = new List<Param>
@@ -331,18 +427,18 @@ namespace PrayTimeCs
 
             // main iterations
             for (var i = 1; i <= _numIterations; i++)
-                times = this.ComputePrayerTimes(times);
+                times = ComputePrayerTimes(times);
 
-            times = this.AdjustTimes(times);
+            times = AdjustTimes(times);
 
             // add midnight time
             times[TimeNames.Midnight] = 
-                (_settings.Where( c => c.ParamName == TimeNames.Midnight).FirstOrDefault().DescribedValue == "Jafari") ?
+                (GetParamByName(_settings, TimeNames.Midnight).DescribedValue == "Jafari") ?
 				times[TimeNames.Sunset] + TimeDiff(times[TimeNames.Sunset], times[TimeNames.Fajr]) / 2 :
                 times[TimeNames.Sunset] + TimeDiff(times[TimeNames.Sunset], times[TimeNames.Sunrise]) / 2;
 
-            times = this.TuneTimes(times);
-            return this.ModifyFormats(times);
+            times = TuneTimes(times);
+            return ModifyFormats(times);
         }
         private int TimeDiff(double starTime, double endTime)
         {
@@ -357,22 +453,147 @@ namespace PrayTimeCs
  	        throw new NotImplementedException();
         }
         private Dictionary<string,double> AdjustTimes(Dictionary<string,double> times)
+        {            
+            Dictionary<string,double> computedTimes = new Dictionary<string,double>();
+            foreach (var i in times)
+            {
+                computedTimes.Add(i.Key, i.Value + _timeZone  - _lng / 15.0);
+            }
+
+            if (GetParamByName(_settings, "HighLats").DescribedValue != "None")
+            {
+                computedTimes = AdjustHighLats(computedTimes);
+            }
+
+            if (IsMin(GetParamByName(_settings, TimeNames.Imsak)))
+                computedTimes[TimeNames.Imsak] = computedTimes[TimeNames.Fajr] - GetAngle(GetParamByName(_settings, TimeNames.Imsak)) / 60;
+            if (IsMin(GetParamByName(_settings, TimeNames.Maghrib)))
+                computedTimes[TimeNames.Maghrib] = computedTimes[TimeNames.Sunset] + GetAngle(GetParamByName(_settings, TimeNames.Maghrib)) / 60;
+            if (IsMin(GetParamByName(_settings, TimeNames.Isha)))
+                computedTimes[TimeNames.Isha] = computedTimes[TimeNames.Maghrib] + GetAngle(GetParamByName(_settings, TimeNames.Isha)) / 60;
+
+            computedTimes[TimeNames.Dhuhr] += GetAngle(GetParamByName(_settings, TimeNames.Dhuhr)) / 60;
+
+ 	        return computedTimes;
+        }
+        private static Param GetParamByName(List<Param> setting, string paramName)
+        {
+            return setting.Where( c => c.ParamName == paramName).FirstOrDefault();
+        }
+        private bool IsMin(Param param)
+        {
+ 	        throw new NotImplementedException();
+        }
+        private Dictionary<string, double> AdjustHighLats(Dictionary<string, double> times)
+        {
+            double nightTime = TimeDiff(times[TimeNames.Sunset], times[TimeNames.Sunrise]);
+
+            times[TimeNames.Imsak] = AdjustHLTime(times[TimeNames.Imsak], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Imsak)), nightTime, "CCW");
+            times[TimeNames.Fajr]  = AdjustHLTime(times[TimeNames.Fajr], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Fajr)), nightTime, "CCW");
+            //times.isha = this.adjustHLTime(times.isha, times.sunset, this.eval(params.isha), nightTime);
+            //times.maghrib = this.adjustHLTime(times.maghrib, times.sunset, this.eval(params.maghrib), nightTime);
+
+            return times;
+        }
+        private double AdjustHLTime(double p,double p_2,double p_3,double nightTime,string p_4)
         {
  	        throw new NotImplementedException();
         }
         private Dictionary<string,double> ComputePrayerTimes(Dictionary<string,double> times)
         {
+            Dictionary<string, double> computedTimes;
             times = DayPortion(times);
-            throw new NotImplementedException();
+
+            double Imsak = SunAngleTime(GetAngle(GetParamByName(_settings, TimeNames.Imsak)), times[TimeNames.Imsak], "CCW");
+            double Fajr = SunAngleTime(GetAngle(GetParamByName(_settings, TimeNames.Fajr)), times[TimeNames.Fajr], "CCW");
+            double Sunrise = SunAngleTime(RiseSetAngle(), times[TimeNames.Sunrise], "CCW");
+            double Dhuhr = GetMidDay(times[TimeNames.Dhuhr]);
+            double Asr = AsrTime(AsrFactor(GetParamByName(_settings, TimeNames.Asr).DescribedValue), times[TimeNames.Asr]);
+            double Sunset = SunAngleTime(RiseSetAngle(), times[TimeNames.Sunset], "CW");
+            double Maghrib = SunAngleTime(GetAngle(GetParamByName(_settings, TimeNames.Maghrib)), times[TimeNames.Maghrib], "CW");
+            double Isha = SunAngleTime(GetAngle(GetParamByName(_settings, TimeNames.Isha)), times[TimeNames.Isha], "CW");
+
+            return computedTimes = new Dictionary<string, double>
+            {
+                { TimeNames.Imsak, Imsak },
+                { TimeNames.Fajr, Fajr },
+                { TimeNames.Sunrise, Sunrise },
+                { TimeNames.Dhuhr, Dhuhr },
+                { TimeNames.Asr, Asr },
+                { TimeNames.Sunset, Sunset },
+                { TimeNames.Maghrib, Maghrib },
+                { TimeNames.Isha, Isha }
+            };
+        }
+        private double AsrTime(double factor, double time)
+        {
+            double declination = GetSunPosition(_jDate + time).Declination;
+            double angle = -_degMath.ArcCot(factor + _degMath.Tan(Math.Abs(_lat - declination)));
+            return SunAngleTime(angle, time, "CW");
+        }
+        private double AsrFactor(string asrFactor)
+        {
+            double afVal = 1;
+            if(Enum.IsDefined(typeof(AsrFactor), asrFactor))
+            {
+                afVal = Convert.ToDouble(Enum.Parse(typeof(AsrFactor), asrFactor)) + 1;
+            }
+            return afVal;
+
+        }
+        private double RiseSetAngle()
+        {
+            var angle = 0.0347 * Math.Sqrt(_elv); // an approximation
+            return 0.833 + angle;
+        }
+        private double SunAngleTime(double angle, double time, string clockDirection)
+        {
+            double declination = GetSunPosition(_jDate + time).Declination;
+            double noon = GetMidDay(time);
+            var t = 1.0 / 15.0 * _degMath.ArcCos((-_degMath.Sin(angle) - _degMath.Sin(declination) * _degMath.Sin(_lat)) /
+                (_degMath.Cos(declination) * _degMath.Cos(_lat)));
+            return noon + (clockDirection == "CCW" ? -t : t);
+        }
+        private double GetAngle(Param param)
+        {
+            double? angle = param.DegValue;
+            if (param.DegValue == null)
+            {
+                angle = param.MinuteValue;
+            }
+            return angle.GetValueOrDefault();
+        }
+        private double GetMidDay(double time)
+        {
+            double equation = GetSunPosition(_jDate + time).Equation;
+            double noon = _degMath.FixHour(12 - equation);
+            return noon;  
+        }
+        private SunPosition GetSunPosition(double jDate)
+        {
+            double D = jDate - 2451545.0;
+            double g = _degMath.FixAngle(357.529 + 0.98560028 * D);
+            double q = _degMath.FixAngle(280.459 + 0.98564736 * D);
+            double L = _degMath.FixAngle(q + 1.915 * _degMath.Sin(g) + 0.020 * _degMath.Sin(2 * g));
+
+            double R = 1.00014 - 0.01671 * _degMath.Cos(g) - 0.00014 * _degMath.Cos(2 * g);
+            double e = 23.439 - 0.00000036 * D;
+
+            double RA = _degMath.ArcTan2(_degMath.Cos(e) * _degMath.Sin(L), _degMath.Cos(L)) / 15;
+            double eqt = q / 15 - _degMath.FixHour(RA);
+            double decl = _degMath.ArcSin(_degMath.Sin(e) * _degMath.Sin(L));
+
+            return new SunPosition{ Declination = decl, Equation = eqt };
         }
         private Dictionary<string, double> DayPortion(Dictionary<string, double> times)
         {
+            Dictionary<string, double> updatedTimes = new Dictionary<string, double>();
             foreach (var i in times)
             {
-                
+                updatedTimes.Add(i.Key, i.Value / 24);
             }
 
-            throw new NotImplementedException();
+            return updatedTimes;
         }
         private double GetJulian(int year, int month, int day)
         {
