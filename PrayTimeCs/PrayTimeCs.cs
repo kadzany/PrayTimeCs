@@ -440,17 +440,49 @@ namespace PrayTimeCs
             times = TuneTimes(times);
             return ModifyFormats(times);
         }
-        private int TimeDiff(double starTime, double endTime)
+        private double TimeDiff(double starTime, double endTime)
         {
-            throw new NotImplementedException();
+            return _degMath.FixHour(endTime - starTime);
         }
         private Dictionary<string,double> TuneTimes(Dictionary<string,double> times)
         {
-            throw new NotImplementedException();
+            Dictionary<string, double> computedTime = new Dictionary<string, double>();
+            foreach (var i in times)
+            {
+                computedTime.Add(i.Key, i.Value + _offset[i.Key] / 60.0);
+            }
+            return computedTime;
         }
         private List<string> ModifyFormats(Dictionary<string,double> times)
         {
- 	        throw new NotImplementedException();
+            List<string> modifiedFormat = new List<string>();            
+            foreach (var i in times)
+            {
+                modifiedFormat.Add(GetFormattedTime(i, _timeFormat));
+            }
+            return modifiedFormat;
+        }
+        private string GetFormattedTime(KeyValuePair<string, double> time, string format)
+        {
+            if (time.Value == null){
+                return _invalidTime;
+            }
+
+            if (format == "Float") return time.Value.ToString();
+
+            //string suffixes = suffixes || _timeSuffixes[0];
+
+            double timeVal = _degMath.FixHour(time.Value + 0.5 / 60.0);  // add 0.5 minutes to round
+            
+            double hours = Math.Floor(timeVal);
+            double minutes = Math.Floor((timeVal - hours) * 60.0);
+            string  suffix = (format == "12h") ? _timeSuffixes[hours < 12.0 ? 0 : 1] : "";
+            string hour = (format == "24h") ? TwoDigitsFormat(hours).ToString() : ((hours + 12.0 - 1) % 12.0 + 1).ToString();
+            return hour + ':' + TwoDigitsFormat(minutes).ToString() + (string.IsNullOrEmpty(suffix) ? " " + suffix : "");
+        }
+        private string TwoDigitsFormat(double hours)
+        {
+            return (hours < 10) ? "0" + hours.ToString() : hours.ToString();
         }
         private Dictionary<string,double> AdjustTimes(Dictionary<string,double> times)
         {            
@@ -482,7 +514,12 @@ namespace PrayTimeCs
         }
         private bool IsMin(Param param)
         {
- 	        throw new NotImplementedException();
+            bool isMin = false;
+            if (param.MinuteValue != null)
+            {
+                isMin = true;
+            }
+            return isMin;
         }
         private Dictionary<string, double> AdjustHighLats(Dictionary<string, double> times)
         {
@@ -490,14 +527,33 @@ namespace PrayTimeCs
 
             times[TimeNames.Imsak] = AdjustHLTime(times[TimeNames.Imsak], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Imsak)), nightTime, "CCW");
             times[TimeNames.Fajr]  = AdjustHLTime(times[TimeNames.Fajr], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Fajr)), nightTime, "CCW");
-            //times.isha = this.adjustHLTime(times.isha, times.sunset, this.eval(params.isha), nightTime);
-            //times.maghrib = this.adjustHLTime(times.maghrib, times.sunset, this.eval(params.maghrib), nightTime);
-
+            times[TimeNames.Isha] = AdjustHLTime(times[TimeNames.Fajr], times[TimeNames.Sunset], GetAngle(GetParamByName(_settings, TimeNames.Isha)), nightTime, "CW");
+            times[TimeNames.Maghrib] = AdjustHLTime(times[TimeNames.Maghrib], times[TimeNames.Sunset], GetAngle(GetParamByName(_settings, TimeNames.Maghrib)), nightTime, "CW");
+            
             return times;
         }
-        private double AdjustHLTime(double p,double p_2,double p_3,double nightTime,string p_4)
+        private double AdjustHLTime(double time,double baseTime,double angle,double nightTime,string direction)
         {
- 	        throw new NotImplementedException();
+            double portion = GetNightPortion(angle, nightTime);
+            double timeDiff = (direction == "CCW") ? TimeDiff(time, baseTime) : TimeDiff(baseTime, time);
+            if (time == null || timeDiff > portion)
+            {
+                time = baseTime + (direction == "CCW" ? -portion : portion);
+            }
+            return time;
+        }
+        private double GetNightPortion(double angle, double nightTime)
+        {            
+            double portion = 1.0 / 2.0; // MidNight
+            if (GetParamByName(_settings, "HighLats").DescribedValue == "AngleBased")
+            {
+                portion = 1.0 / 60.0 * angle;
+            }
+            if (GetParamByName(_settings, "HighLats").DescribedValue == "OneSeventh")
+            {
+                portion = 1.0 / 7.0;
+            }
+            return portion * nightTime;
         }
         private Dictionary<string,double> ComputePrayerTimes(Dictionary<string,double> times)
         {
@@ -539,7 +595,6 @@ namespace PrayTimeCs
                 afVal = Convert.ToDouble(Enum.Parse(typeof(AsrFactor), asrFactor)) + 1;
             }
             return afVal;
-
         }
         private double RiseSetAngle()
         {
