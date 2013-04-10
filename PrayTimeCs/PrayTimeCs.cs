@@ -527,7 +527,7 @@ namespace PrayTimeCs
 
             times[TimeNames.Imsak] = AdjustHLTime(times[TimeNames.Imsak], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Imsak)), nightTime, "CCW");
             times[TimeNames.Fajr]  = AdjustHLTime(times[TimeNames.Fajr], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Fajr)), nightTime, "CCW");
-            times[TimeNames.Isha] = AdjustHLTime(times[TimeNames.Fajr], times[TimeNames.Sunset], GetAngle(GetParamByName(_settings, TimeNames.Isha)), nightTime, "CW");
+            times[TimeNames.Isha] = AdjustHLTime(times[TimeNames.Isha], times[TimeNames.Sunset], GetAngle(GetParamByName(_settings, TimeNames.Isha)), nightTime, "CW");
             times[TimeNames.Maghrib] = AdjustHLTime(times[TimeNames.Maghrib], times[TimeNames.Sunset], GetAngle(GetParamByName(_settings, TimeNames.Maghrib)), nightTime, "CW");
             
             return times;
