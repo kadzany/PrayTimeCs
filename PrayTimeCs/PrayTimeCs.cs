@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace PrayTimeCs
 {
+    #region Data Structures
     public enum AsrFactor
     {
         Standard,
@@ -33,14 +33,14 @@ namespace PrayTimeCs
     {
         public string ParamName { get; set; }
         double? _degValue;
-        public double? DegValue 
+        public double? DegValue
         {
-            get { return _degValue;  }
-            set 
+            get { return _degValue; }
+            set
             {
                 _describedValue = null;
                 _minuteValue = null;
-                _degValue = value; 
+                _degValue = value;
             }
         }
         double? _minuteValue;
@@ -82,58 +82,61 @@ namespace PrayTimeCs
         {
             return (d * Math.PI) / 180;
         }
-        public double R2D(double r) 
-        { 
-            return (r * 180.0) / Math.PI; 
+        public double R2D(double r)
+        {
+            return (r * 180.0) / Math.PI;
         }
         public double Sin(double d)
-        { 
-            return Math.Sin(D2R(d)); 
+        {
+            return Math.Sin(D2R(d));
         }
-        public double Cos(double d) 
-        { 
-            return Math.Cos(D2R(d)); 
+        public double Cos(double d)
+        {
+            return Math.Cos(D2R(d));
         }
-        public double Tan(double d) 
-        { 
-            return Math.Tan(D2R(d)); 
+        public double Tan(double d)
+        {
+            return Math.Tan(D2R(d));
         }
-        public double ArcSin(double d) 
-        { 
-            return R2D(Math.Asin(d)); 
+        public double ArcSin(double d)
+        {
+            return R2D(Math.Asin(d));
         }
         public double ArcCos(double d)
-        { 
-            return R2D(Math.Acos(d)); 
+        {
+            return R2D(Math.Acos(d));
         }
-        public double ArcTan(double d) 
-        { 
-            return R2D(Math.Atan(d)); 
+        public double ArcTan(double d)
+        {
+            return R2D(Math.Atan(d));
         }
-        public double ArcCot(double x) 
-        { 
-            return R2D(Math.Atan(1 / x)); 
+        public double ArcCot(double x)
+        {
+            return R2D(Math.Atan(1 / x));
         }
-        public double ArcTan2(double y,double  x)
-        { 
-            return R2D(Math.Atan2(y, x)); 
+        public double ArcTan2(double y, double x)
+        {
+            return R2D(Math.Atan2(y, x));
         }
-        public double FixAngle(double a) 
-        { 
-            return Fix(a, 360); 
+        public double FixAngle(double a)
+        {
+            return Fix(a, 360);
         }
-        public double FixHour(double a) 
-        { 
-            return Fix(a, 24); 
+        public double FixHour(double a)
+        {
+            return Fix(a, 24);
         }
-        public double Fix(double a,double  b) {
+        public double Fix(double a, double b)
+        {
             a = a - b * (Math.Floor(a / b));
             return (a < 0) ? a + b : a;
         }
-    }
+    } 
+    #endregion
+    #region Main Process
     public class PrayTimeCs
     {
-        #region Constants 
+        #region Constants
         private DMath _degMath = new DMath();
         private Method _calcMethod;
         private Dictionary<String, Method> _methods;
@@ -188,17 +191,17 @@ namespace PrayTimeCs
             { TimeNames.Maghrib, 0 },
             { TimeNames.Isha, 0 },
             { TimeNames.Midnight, 0 }
-        }; 
+        };
         private double _lat, _lng, _elv;
         private double _timeZone, _jDate;
         #endregion
-        
+
         #region Initializers & Public Methods
         public PrayTimeCs(string methodName)
-        {            
-            InitializeMethods();            
+        {
+            InitializeMethods();
             SetMethodsDefault();
-            InitializeSettings(methodName);            
+            InitializeSettings(methodName);
         }
         private void InitializeSettings(string methodName)
         {
@@ -216,7 +219,7 @@ namespace PrayTimeCs
             List<Param> defParams = _defaultParams;
             foreach (var i in _methods)
             {
-                i.Value.Params.AddRange(defParams.Where(p => ! i.Value.Params.Select(c => c.ParamName).Contains(p.ParamName)));
+                i.Value.Params.AddRange(defParams.Where(p => !i.Value.Params.Select(c => c.ParamName).Contains(p.ParamName)));
             }
         }
         private void InitializeMethods()
@@ -400,17 +403,36 @@ namespace PrayTimeCs
         {
             return _methods;
         }
-        public Dictionary<string, string> GetTimes(DateTime date, double lat, double lng, double timezone, int dst)
+        public Dictionary<string, DateTime> GetTimes(DateTime date, double lat, double lng, double timezone, int dst)
         {
-            List<String> resultingTimes = new List<string>();
+            Dictionary<string, string> resultingTimes = new Dictionary<string, string>();
+            Dictionary<string, DateTime> returnValue = new Dictionary<string, DateTime>();
             _lat = lat;
             _lng = lng;
-            //TODO: timezone functions (DST, GMTOffsett, etc is not yet implemented
+            //TODO: timezone functions (DST, GMTOffset, etc is not yet implemented
             _timeZone = 1 * timezone + ((1 * dst) > 0 ? 1 : 0);
             _jDate = GetJulian(date.Year, date.Month, date.Day) - _lng / (15 * 24);
-            return ComputeTimes(resultingTimes);
+            resultingTimes = ComputeTimes();
+            foreach (var t in resultingTimes)
+            {
+                returnValue.Add(t.Key, ConvertToDateTime(t.Value));
+            }
+            return returnValue;
         }
-        private Dictionary<string, string> ComputeTimes(List<string> resultingTimes)
+        private DateTime ConvertToDateTime(string dateTimeStr)
+        {
+            DateTime convertedDate = new DateTime();
+            try
+            {
+                convertedDate = Convert.ToDateTime(dateTimeStr);
+            }
+            catch (FormatException)
+            {
+                Console.WriteLine("'{0}' is not in the proper format.", dateTimeStr);
+            }
+            return convertedDate;
+        }
+        private Dictionary<string, string> ComputeTimes()
         {
             Dictionary<String, double> times = new Dictionary<string, double>
             {
@@ -423,7 +445,7 @@ namespace PrayTimeCs
                 { TimeNames.Maghrib, 18 },
                 { TimeNames.Isha, 18 },
                 { TimeNames.Midnight, 0 }
-            }; 
+            };
 
             // main iterations
             for (var i = 1; i <= _numIterations; i++)
@@ -432,9 +454,9 @@ namespace PrayTimeCs
             times = AdjustTimes(times);
 
             // add midnight time
-            times[TimeNames.Midnight] = 
+            times[TimeNames.Midnight] =
                 (GetParamByName(_settings, TimeNames.Midnight).DescribedValue == "Jafari") ?
-				times[TimeNames.Sunset] + TimeDiff(times[TimeNames.Sunset], times[TimeNames.Fajr]) / 2 :
+                times[TimeNames.Sunset] + TimeDiff(times[TimeNames.Sunset], times[TimeNames.Fajr]) / 2 :
                 times[TimeNames.Sunset] + TimeDiff(times[TimeNames.Sunset], times[TimeNames.Sunrise]) / 2;
 
             times = TuneTimes(times);
@@ -444,7 +466,7 @@ namespace PrayTimeCs
         {
             return _degMath.FixHour(endTime - starTime);
         }
-        private Dictionary<string,double> TuneTimes(Dictionary<string,double> times)
+        private Dictionary<string, double> TuneTimes(Dictionary<string, double> times)
         {
             Dictionary<string, double> computedTime = new Dictionary<string, double>();
             foreach (var i in times)
@@ -455,7 +477,7 @@ namespace PrayTimeCs
         }
         private Dictionary<string, string> ModifyFormats(Dictionary<string, double> times)
         {
-            Dictionary<string, string> modifiedFormat = new Dictionary<string, string>();            
+            Dictionary<string, string> modifiedFormat = new Dictionary<string, string>();
             foreach (var i in times)
             {
                 modifiedFormat.Add(i.Key, GetFormattedTime(i, _timeFormat));
@@ -464,7 +486,8 @@ namespace PrayTimeCs
         }
         private string GetFormattedTime(KeyValuePair<string, double> time, string format)
         {
-            if (time.Value == null){
+            if (time.Value == null)
+            {
                 return _invalidTime;
             }
 
@@ -473,10 +496,10 @@ namespace PrayTimeCs
             //string suffixes = suffixes || _timeSuffixes[0];
 
             double timeVal = _degMath.FixHour(time.Value + 0.5 / 60.0);  // add 0.5 minutes to round
-            
+
             double hours = Math.Floor(timeVal);
             double minutes = Math.Floor((timeVal - hours) * 60.0);
-            string  suffix = (format == "12h") ? _timeSuffixes[hours < 12.0 ? 0 : 1] : "";
+            string suffix = (format == "12h") ? _timeSuffixes[hours < 12.0 ? 0 : 1] : "";
             string hour = (format == "24h") ? TwoDigitsFormat(hours).ToString() : ((hours + 12.0 - 1) % 12.0 + 1).ToString();
             return hour + ':' + TwoDigitsFormat(minutes).ToString() + (string.IsNullOrEmpty(suffix) ? " " + suffix : "");
         }
@@ -484,12 +507,12 @@ namespace PrayTimeCs
         {
             return (hours < 10) ? "0" + hours.ToString() : hours.ToString();
         }
-        private Dictionary<string,double> AdjustTimes(Dictionary<string,double> times)
-        {            
-            Dictionary<string,double> computedTimes = new Dictionary<string,double>();
+        private Dictionary<string, double> AdjustTimes(Dictionary<string, double> times)
+        {
+            Dictionary<string, double> computedTimes = new Dictionary<string, double>();
             foreach (var i in times)
             {
-                computedTimes.Add(i.Key, i.Value + _timeZone  - _lng / 15.0);
+                computedTimes.Add(i.Key, i.Value + _timeZone - _lng / 15.0);
             }
 
             if (GetParamByName(_settings, "HighLats").DescribedValue != "None")
@@ -506,11 +529,11 @@ namespace PrayTimeCs
 
             computedTimes[TimeNames.Dhuhr] += GetAngle(GetParamByName(_settings, TimeNames.Dhuhr)) / 60;
 
- 	        return computedTimes;
+            return computedTimes;
         }
         private static Param GetParamByName(List<Param> setting, string paramName)
         {
-            return setting.Where( c => c.ParamName == paramName).FirstOrDefault();
+            return setting.Where(c => c.ParamName == paramName).FirstOrDefault();
         }
         private bool IsMin(Param param)
         {
@@ -526,13 +549,13 @@ namespace PrayTimeCs
             double nightTime = TimeDiff(times[TimeNames.Sunset], times[TimeNames.Sunrise]);
 
             times[TimeNames.Imsak] = AdjustHLTime(times[TimeNames.Imsak], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Imsak)), nightTime, "CCW");
-            times[TimeNames.Fajr]  = AdjustHLTime(times[TimeNames.Fajr], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Fajr)), nightTime, "CCW");
+            times[TimeNames.Fajr] = AdjustHLTime(times[TimeNames.Fajr], times[TimeNames.Sunrise], GetAngle(GetParamByName(_settings, TimeNames.Fajr)), nightTime, "CCW");
             times[TimeNames.Isha] = AdjustHLTime(times[TimeNames.Isha], times[TimeNames.Sunset], GetAngle(GetParamByName(_settings, TimeNames.Isha)), nightTime, "CW");
             times[TimeNames.Maghrib] = AdjustHLTime(times[TimeNames.Maghrib], times[TimeNames.Sunset], GetAngle(GetParamByName(_settings, TimeNames.Maghrib)), nightTime, "CW");
-            
+
             return times;
         }
-        private double AdjustHLTime(double time,double baseTime,double angle,double nightTime,string direction)
+        private double AdjustHLTime(double time, double baseTime, double angle, double nightTime, string direction)
         {
             double portion = GetNightPortion(angle, nightTime);
             double timeDiff = (direction == "CCW") ? TimeDiff(time, baseTime) : TimeDiff(baseTime, time);
@@ -543,7 +566,7 @@ namespace PrayTimeCs
             return time;
         }
         private double GetNightPortion(double angle, double nightTime)
-        {            
+        {
             double portion = 1.0 / 2.0; // MidNight
             if (GetParamByName(_settings, "HighLats").DescribedValue == "AngleBased")
             {
@@ -555,7 +578,7 @@ namespace PrayTimeCs
             }
             return portion * nightTime;
         }
-        private Dictionary<string,double> ComputePrayerTimes(Dictionary<string,double> times)
+        private Dictionary<string, double> ComputePrayerTimes(Dictionary<string, double> times)
         {
             Dictionary<string, double> computedTimes;
             times = DayPortion(times);
@@ -590,7 +613,7 @@ namespace PrayTimeCs
         private double AsrFactor(string asrFactor)
         {
             double afVal = 1;
-            if(Enum.IsDefined(typeof(AsrFactor), asrFactor))
+            if (Enum.IsDefined(typeof(AsrFactor), asrFactor))
             {
                 afVal = Convert.ToDouble(Enum.Parse(typeof(AsrFactor), asrFactor)) + 1;
             }
@@ -622,7 +645,7 @@ namespace PrayTimeCs
         {
             double equation = GetSunPosition(_jDate + time).Equation;
             double noon = _degMath.FixHour(12 - equation);
-            return noon;  
+            return noon;
         }
         private SunPosition GetSunPosition(double jDate)
         {
@@ -638,7 +661,7 @@ namespace PrayTimeCs
             double eqt = q / 15 - _degMath.FixHour(RA);
             double decl = _degMath.ArcSin(_degMath.Sin(e) * _degMath.Sin(L));
 
-            return new SunPosition{ Declination = decl, Equation = eqt };
+            return new SunPosition { Declination = decl, Equation = eqt };
         }
         private Dictionary<string, double> DayPortion(Dictionary<string, double> times)
         {
@@ -664,5 +687,6 @@ namespace PrayTimeCs
             return JD;
         }
         #endregion
-    }
+    } 
+    #endregion
 }
