@@ -400,7 +400,7 @@ namespace PrayTimeCs
         {
             return _methods;
         }
-        public List<String> GetTimes(DateTime date, double lat, double lng, double timezone, int dst)
+        public Dictionary<string, string> GetTimes(DateTime date, double lat, double lng, double timezone, int dst)
         {
             List<String> resultingTimes = new List<string>();
             _lat = lat;
@@ -410,7 +410,7 @@ namespace PrayTimeCs
             _jDate = GetJulian(date.Year, date.Month, date.Day) - _lng / (15 * 24);
             return ComputeTimes(resultingTimes);
         }
-        private List<string> ComputeTimes(List<string> resultingTimes)
+        private Dictionary<string, string> ComputeTimes(List<string> resultingTimes)
         {
             Dictionary<String, double> times = new Dictionary<string, double>
             {
@@ -453,12 +453,12 @@ namespace PrayTimeCs
             }
             return computedTime;
         }
-        private List<string> ModifyFormats(Dictionary<string,double> times)
+        private Dictionary<string, string> ModifyFormats(Dictionary<string, double> times)
         {
-            List<string> modifiedFormat = new List<string>();            
+            Dictionary<string, string> modifiedFormat = new Dictionary<string, string>();            
             foreach (var i in times)
             {
-                modifiedFormat.Add(GetFormattedTime(i, _timeFormat));
+                modifiedFormat.Add(i.Key, GetFormattedTime(i, _timeFormat));
             }
             return modifiedFormat;
         }

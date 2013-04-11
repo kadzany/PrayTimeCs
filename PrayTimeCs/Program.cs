@@ -9,8 +9,8 @@ namespace PrayTimeCs
     {
         static void Main(string[] args)
         {
-            PrayTimeCs prayTimeCs = new PrayTimeCs("MWL");
-            prayTimeCs.GetTimes(DateTime.Now, 43, -80, -5, 0);
+            PrayTimeCs prayTimeCs = new PrayTimeCs("Egypt");
+            prayTimeCs.GetTimes(DateTime.Now, -6.910237756030072, 107.59923934936523, 7, 0);
         }
     }
 }
