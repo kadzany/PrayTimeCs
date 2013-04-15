@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace PrayTimeCsCmd
+namespace PrayTimeCs
 {
     class Program
     {
         static void Main(string[] args)
         {
             Dictionary<string, DateTime> result = new Dictionary<string, DateTime>();
-            PrayTimeCs.PrayTimeCs prayTimeCs = new PrayTimeCs.PrayTimeCs("Egypt");
+            PrayTimeCs prayTimeCs = new PrayTimeCs("Egypt");
             result = prayTimeCs.GetTimes(DateTime.Now, -6.910237756030072, 107.59923934936523, 7, 0);
             foreach (var r in result)
             {
